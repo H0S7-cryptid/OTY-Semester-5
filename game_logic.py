@@ -289,6 +289,7 @@ class Move:
     proposed_node: Node
     accepted: bool
     position_changed: bool
+    actor: str = "И1"
 
 
 @dataclass(frozen=True)
@@ -357,34 +358,49 @@ class MazeGame:
 
         for round_number in range(1, self.max_rounds + 1):
             candidates = list(self.maze.neighbors(position))
+            if not candidates:
+                continue
             rng.shuffle(candidates)
-            attempts_limit = self.max_proposals_per_round or len(candidates)
-            attempts = 0
+            proposed = player_1.choose(
+                maze=self.maze,
+                current=position,
+                candidates=candidates,
+                exits=self.exits,
+                rng=rng,
+            )
+            accepted = player_2.accept(
+                game_number=game_number,
+                round_number=round_number,
+                current=position,
+                proposed=proposed,
+                exits=self.exits,
+                rng=rng,
+            )
+            moves.append(Move(round_number, 1, position, proposed, accepted, accepted, "И1"))
+            if accepted:
+                position = proposed
+                if position in self.exits:
+                    return GameResult(game_number, "И2", round_number, position, tuple(moves))
+                continue
 
-            while candidates and attempts < attempts_limit:
-                proposed = player_1.choose(
-                    maze=self.maze,
-                    current=position,
-                    candidates=candidates,
-                    exits=self.exits,
-                    rng=rng,
+            random_neighbors = self.maze.neighbors(position)
+            if not random_neighbors:
+                continue
+            random_destination = rng.choice(random_neighbors)
+            moves.append(
+                Move(
+                    round_number,
+                    0,
+                    position,
+                    random_destination,
+                    False,
+                    True,
+                    "И2",
                 )
-                candidates.remove(proposed)
-                attempts += 1
-                accepted = player_2.accept(
-                    game_number=game_number,
-                    round_number=round_number,
-                    current=position,
-                    proposed=proposed,
-                    exits=self.exits,
-                    rng=rng,
-                )
-                moves.append(Move(round_number, attempts, position, proposed, accepted, accepted))
-                if accepted:
-                    position = proposed
-                    if position in self.exits:
-                        return GameResult(game_number, "И2", round_number, position, tuple(moves))
-                    break
+            )
+            position = random_destination
+            if position in self.exits:
+                return GameResult(game_number, "И2", round_number, position, tuple(moves))
 
         return GameResult(game_number, "И1", self.max_rounds, position, tuple(moves))
 

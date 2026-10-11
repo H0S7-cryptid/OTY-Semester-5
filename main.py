@@ -126,6 +126,12 @@ def run_cli(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
         for result in stats.games:
             print(f"\nИстория игры {result.game_number}:")
             for move in result.moves:
+                if move.actor == "И2":
+                    print(
+                        f"  раунд {move.round_number}, случайный ход И2: "
+                        f"{move.from_node}->{move.proposed_node}"
+                    )
+                    continue
                 sign = "+" if move.accepted else "-"
                 print(
                     f"  раунд {move.round_number}, предложение {move.proposal_number}: "

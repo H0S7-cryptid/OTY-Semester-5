@@ -17,6 +17,7 @@ from game_logic import (
     MAZE_EDGES,
     Maze,
     MazeGame,
+    Move,
     Node,
     Player1ProposalStrategy,
     Player2Strategy,
@@ -240,13 +241,9 @@ class MazeApp:
         strategy1, strategy2, rounds, exits = self.current_params
         accepted_path = ["13"]
         for move in result.moves:
-            if move.accepted:
+            if move.position_changed:
                 accepted_path.append(str(move.proposed_node))
-        details = "\n".join(
-            f"Раунд {move.round_number}, предложение {move.proposal_number}: "
-            f"{move.from_node} → {move.proposed_node} {'+' if move.accepted else '-'}"
-            for move in result.moves
-        ) or "Предложений не было."
+        details = "\n".join(self._format_move(move) for move in result.moves) or "Предложений не было."
         return (
             f"Игра №{result.game_number}\n"
             f"Стратегия И1: {strategy1}\n"
@@ -258,6 +255,18 @@ class MazeApp:
             f"Финальный узел: {result.final_position}\n"
             f"Путь принятых переходов: {' → '.join(accepted_path)}\n\n"
             f"История предложений:\n{details}"
+        )
+
+    @staticmethod
+    def _format_move(move: Move) -> str:
+        if move.actor == "И2":
+            return (
+                f"Раунд {move.round_number}, случайный ход И2: "
+                f"{move.from_node} → {move.proposed_node}"
+            )
+        return (
+            f"Раунд {move.round_number}, предложение {move.proposal_number}: "
+            f"{move.from_node} → {move.proposed_node} {'+' if move.accepted else '-'}"
         )
 
     def start_session(self) -> None:
