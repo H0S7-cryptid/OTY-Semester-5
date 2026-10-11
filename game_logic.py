@@ -222,6 +222,8 @@ class CustomPattern(Player2Strategy):
 class Player1ProposalStrategy(ABC):
     """Алгоритм выбора предложения первым игроком."""
 
+    name: str
+
     @abstractmethod
     def choose(
         self,
