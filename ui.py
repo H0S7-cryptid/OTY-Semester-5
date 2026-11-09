@@ -11,6 +11,7 @@ from game_logic import (
     AlwaysAccept,
     AlwaysReject,
     DEFAULT_EXITS,
+    DEFAULT_START,
     ExitSeeking,
     FarthestFromExitsProposal,
     GameResult,
@@ -30,13 +31,13 @@ from game_logic import (
 
 # Координаты узлов с изображения задания. Они не участвуют в расчёте игры.
 MAZE_COORDINATES: Mapping[Node, tuple[int, int]] = {
-    1: (107, 108), 2: (231, 60), 3: (384, 47), 4: (536, 60),
-    5: (659, 108), 6: (719, 230), 7: (187, 243), 8: (322, 212),
-    9: (445, 212), 10: (580, 243), 11: (291, 341), 12: (475, 341),
-    13: (383, 416), 14: (274, 477), 15: (383, 524), 16: (493, 476),
-    17: (187, 585), 18: (321, 616), 19: (445, 616), 20: (579, 585),
-    21: (47, 599), 22: (108, 721), 23: (230, 770), 24: (384, 782),
-    25: (536, 770), 26: (659, 721),
+    1: (400, 40), 2: (200, 130), 3: (400, 130), 4: (600, 130),
+    5: (40, 300), 6: (270, 260), 7: (400, 280), 8: (530, 260),
+    9: (760, 300), 10: (150, 320), 11: (650, 320), 12: (280, 390),
+    13: (400, 430), 14: (520, 390), 15: (230, 510), 16: (330, 550),
+    17: (470, 550), 18: (570, 510), 19: (710, 590), 20: (90, 590),
+    21: (230, 690), 22: (400, 650), 23: (570, 690), 24: (190, 790),
+    25: (400, 820), 26: (640, 790),
 }
 
 
@@ -69,7 +70,7 @@ class MazeApp:
         self.current_game_number = 0
         self.current_params: tuple[str, str, int, frozenset[Node]] | None = None
         self.history: list[GameResult] = []
-        self.current_position = 13
+        self.current_position = DEFAULT_START
         self._draw_job: str | None = None
 
         self.player1_strategy_var = tk.StringVar(value=self.PLAYER1_STRATEGIES[0])
@@ -118,7 +119,7 @@ class MazeApp:
         ttk.Label(settings, text="Выходные узлы:").grid(row=6, column=0, sticky="w", pady=(0, 4))
         self.exits_entry = ttk.Entry(settings, textvariable=self.exits_var, width=33)
         self.exits_entry.grid(row=7, column=0, sticky="ew", pady=(0, 4))
-        ttk.Label(settings, text="Например: 2, 5, 25, 22", foreground="#666666").grid(
+        ttk.Label(settings, text="Например: 1, 5, 9, 24, 26", foreground="#666666").grid(
             row=8, column=0, sticky="w", pady=(0, 16)
         )
 
@@ -173,10 +174,10 @@ class MazeApp:
         width = max(self.graph_canvas.winfo_width(), 300)
         height = max(self.graph_canvas.winfo_height(), 300)
         margin = 30
-        scale = min((width - 2 * margin) / 768, (height - 2 * margin) / 782)
+        scale = min((width - 2 * margin) / 800, (height - 2 * margin) / 860)
         scale = max(scale, 0.05)
-        offset_x = (width - 768 * scale) / 2
-        offset_y = (height - 782 * scale) / 2
+        offset_x = (width - 800 * scale) / 2
+        offset_y = (height - 860 * scale) / 2
 
         def point(node: Node) -> tuple[float, float]:
             x, y = MAZE_COORDINATES[node]
@@ -202,7 +203,7 @@ class MazeApp:
                 x - radius, y - radius, x + radius, y + radius,
                 fill=fill, outline=outline, width=outline_width,
             )
-            self.graph_canvas.create_text(x, y, text=str(node), font=("Segoe UI", font_size, "bold"))
+            self.graph_canvas.create_text(x, y, text=f"{node}*" if node in exits else str(node), font=("Segoe UI", font_size, "bold"))
 
         self.graph_canvas.create_text(
             10, 10, anchor="nw",
@@ -239,7 +240,7 @@ class MazeApp:
     def _result_text_for(self, result: GameResult) -> str:
         assert self.current_params is not None
         strategy1, strategy2, rounds, exits = self.current_params
-        accepted_path = ["13"]
+        accepted_path = [str(DEFAULT_START)]
         for move in result.moves:
             if move.position_changed:
                 accepted_path.append(str(move.proposed_node))
@@ -253,7 +254,7 @@ class MazeApp:
             f"Победитель: {result.winner}\n"
             f"Раунд завершения: {result.rounds}\n"
             f"Финальный узел: {result.final_position}\n"
-            f"Путь принятых переходов: {' → '.join(accepted_path)}\n\n"
+            f"Путь И2: {' → '.join(accepted_path)}\n\n"
             f"История предложений:\n{details}"
         )
 
@@ -284,7 +285,7 @@ class MazeApp:
         self.current_params = (self.player1_strategy_var.get(), self.strategy_var.get(), rounds, exits)
         self.current_game_number = 0
         self.history.clear()
-        self.current_position = 13
+        self.current_position = DEFAULT_START
         self._set_inputs_enabled(False)
         self.status_var.set("Сеанс активен. Кнопка «Да» запускает следующую игру с теми же параметрами.")
         self._play_next_game(strategy1, strategy, rounds, exits)
@@ -320,7 +321,7 @@ class MazeApp:
         self.continue_frame.grid_remove()
         self._set_inputs_enabled(True)
         self.status_var.set("Сеанс завершён. Можно ввести новые параметры.")
-        self.current_position = 13
+        self.current_position = DEFAULT_START
         self._write_result("")
         self._draw_maze()
 

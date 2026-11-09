@@ -13,32 +13,33 @@ Node = int
 Decision = bool
 VALID_NODES = frozenset(range(1, 27))
 DEFAULT_START = 13
-DEFAULT_EXITS = frozenset({2, 5, 22, 25})
+DEFAULT_EXITS = frozenset({1, 5, 9, 24, 26})
 
 
 # Связи лабиринта с изображения задания.
 MAZE_EDGES: tuple[tuple[Node, Node], ...] = (
-    (1, 2), (1, 7), (1, 21),
-    (2, 3), (2, 8),
-    (3, 4), (3, 8), (3, 9),
-    (4, 5), (4, 9), (4, 10),
-    (5, 6), (5, 10),
-    (6, 10), (6, 26),
-    (7, 8), (7, 11), (7, 17),
-    (8, 9), (8, 11),
-    (9, 10), (9, 12),
-    (10, 12), (10, 20),
-    (11, 12), (11, 13), (11, 14),
-    (12, 13), (12, 16),
-    (13, 14), (13, 15), (13, 16),
-    (14, 15), (14, 17),
-    (15, 16), (15, 18), (15, 19),
-    (16, 20),
-    (17, 18), (17, 21), (17, 22),
-    (18, 19), (18, 23), (18, 24),
-    (19, 20), (19, 24), (19, 25),
-    (20, 26),
-    (21, 22), (22, 23), (23, 24), (24, 25), (25, 26),
+    (1, 2), (1, 4),
+    (2, 3), (2, 5), (2, 10),
+    (3, 4), (3, 6), (3, 8),
+    (4, 9), (4, 11),
+    (5, 20),
+    (6, 7), (6, 10), (6, 12),
+    (7, 8), (7, 12), (7, 13), (7, 14),
+    (8, 11), (8, 14),
+    (9, 19),
+    (10, 15), (10, 20),
+    (11, 18), (11, 19),
+    (12, 13), (12, 15), (12, 16),
+    (13, 14), (13, 16), (13, 17),
+    (14, 17), (14, 18),
+    (15, 16), (15, 21),
+    (16, 17), (16, 22),
+    (17, 18), (17, 22),
+    (18, 23),
+    (19, 23), (19, 26),
+    (20, 21), (20, 24),
+    (21, 22), (21, 25),
+    (22, 23), (23, 25), (24, 25), (25, 26),
 )
 
 
@@ -249,7 +250,7 @@ class RandomProposal(Player1ProposalStrategy):
         exits: frozenset[Node],
         rng: random.Random,
     ) -> Node:
-        return rng.choice(list(candidates))
+        return rng.choice(candidates)
 
 
 class FarthestFromExitsProposal(Player1ProposalStrategy):
@@ -329,7 +330,6 @@ class MazeGame:
         *,
         exits: Iterable[Node] = DEFAULT_EXITS,
         max_rounds: int = 25,
-        max_proposals_per_round: int | None = None,
     ) -> None:
         start = DEFAULT_START
         if start not in maze.adjacency:
@@ -343,7 +343,6 @@ class MazeGame:
         self.start = start
         self.exits = exits_set
         self.max_rounds = max_rounds
-        self.max_proposals_per_round = max_proposals_per_round
 
     def play(
         self,
@@ -355,12 +354,13 @@ class MazeGame:
     ) -> GameResult:
         position = self.start
         moves: list[Move] = []
+        if position in self.exits:
+            return GameResult(game_number, "И2", 0, position, ())
 
         for round_number in range(1, self.max_rounds + 1):
-            candidates = list(self.maze.neighbors(position))
+            candidates = self.maze.neighbors(position)
             if not candidates:
                 continue
-            rng.shuffle(candidates)
             proposed = player_1.choose(
                 maze=self.maze,
                 current=position,
@@ -383,10 +383,7 @@ class MazeGame:
                     return GameResult(game_number, "И2", round_number, position, tuple(moves))
                 continue
 
-            random_neighbors = self.maze.neighbors(position)
-            if not random_neighbors:
-                continue
-            random_destination = rng.choice(random_neighbors)
+            random_destination = rng.choice(candidates)
             moves.append(
                 Move(
                     round_number,
@@ -423,7 +420,7 @@ class MazeGame:
 
 
 def parse_exit_nodes(value: str) -> frozenset[Node]:
-    """Разобрать строку выходов вида ``2, 5, 25, 22``."""
+    """Разобрать строку выходов вида ``1, 5, 9, 24, 26``."""
 
     tokens = value.replace(",", " ").split()
     if not tokens:

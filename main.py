@@ -10,6 +10,7 @@ from game_logic import (
     AlwaysAccept,
     AlwaysReject,
     CustomPattern,
+    DEFAULT_EXITS,
     ExitSeeking,
     FarthestFromExitsProposal,
     Maze,
@@ -37,7 +38,7 @@ def build_strategy(args: argparse.Namespace) -> Player2Strategy:
         return ExitSeeking()
     if args.strategy2 == "custom":
         if not args.pattern:
-            raise SystemExit("Для --strategy2 custom укажите --pattern, например ++--+-")
+            raise ValueError("Для --strategy2 custom укажите --pattern, например ++--+-")
         return CustomPattern(args.pattern)
     return StandardStrategy()
 
@@ -54,7 +55,7 @@ def make_parser() -> argparse.ArgumentParser:
     parser.add_argument("--cli", action="store_true", help="запустить консольный режим")
     parser.add_argument("--games", type=int, default=1, help="число игр в консольном режиме")
     parser.add_argument("--rounds", type=int, default=25, help="число раундов N в игре")
-    parser.add_argument("--exits", default="2,5,25,22", help="выходы через запятую, например 2,5,25,22")
+    parser.add_argument("--exits", default=",".join(map(str, sorted(DEFAULT_EXITS))), help="выходы через запятую, например 1,5,9,24,26")
     parser.add_argument("--seed", type=int, default=None, help="начальное значение генератора случайных чисел")
     parser.add_argument(
         "--strategy2",
@@ -106,20 +107,19 @@ def print_result(
 
 
 def run_cli(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
-    strategy = build_strategy(args)
-    player_1 = build_player1_strategy(args)
     try:
+        strategy = build_strategy(args)
+        player_1 = build_player1_strategy(args)
         exits = parse_exit_nodes(args.exits)
+        game = MazeGame(Maze.default(), exits=exits, max_rounds=args.rounds)
+        stats = game.simulate(
+            games=args.games,
+            player_2=strategy,
+            player_1=player_1,
+            seed=args.seed,
+        )
     except ValueError as error:
         parser.error(str(error))
-
-    game = MazeGame(Maze.default(), exits=exits, max_rounds=args.rounds)
-    stats = game.simulate(
-        games=args.games,
-        player_2=strategy,
-        player_1=player_1,
-        seed=args.seed,
-    )
     print_result(stats, strategy, player_1)
 
     if args.verbose:
